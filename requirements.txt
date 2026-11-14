@@ -1,0 +1,13 @@
+# AquaSnowLLM has NO required third-party packages: it uses only the Python
+# 2.7 standard library (urllib2, ssl, json, socket) plus a Qt 4 binding.
+#
+# Qt 4 binding (required -- install the matching binary package):
+#   MacPorts (Snow Leopard):  sudo port install py27-pyqt4
+#   Homebrew (10.10-10.14):   brew install python2 pyqt@4
+#   Official .dmg (riverbankcomputing.com) also works for Apple's python2.7
+#
+# Optional, not used by default (the client speaks urllib2/ssl directly):
+#   requests
+#
+# Packaging (macOS only):
+#   py2app==0.28.10        # the last release that supports Python 2.7

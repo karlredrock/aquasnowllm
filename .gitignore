@@ -1,0 +1,25 @@
+# Python
+*.pyc
+*.pyo
+__pycache__/
+*.egg-info/
+build/
+dist/
+
+# py2app output
+*.app/
+*.dmg
+
+# editor / OS
+.DS_Store
+.idea/
+.vscode/
+
+# local secrets and data (never commit a real key)
+config.json
+chats.json
+*.corrupt-*
+cacert.pem
+
+# test scratch
+.preview_*.png
