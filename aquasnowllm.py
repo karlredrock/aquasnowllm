@@ -1447,7 +1447,8 @@ class HTTPBridge(object):
         if self.is_running():
             return True
         self._stop_event.clear()
-        self._thread = threading.Thread(target=self.run, name="aquasnow-bridge")
+        self._thread = threading.Thread(target=self.run,
+                                        name="aquasnow-bridge")
         self._thread.daemon = True
         self._thread.start()
         return True
@@ -2527,7 +2528,10 @@ if QT_API is not None:
             # both dropdown picks and hand-typed ids, and it cannot be
             # clobbered by the combo box's "first item" default.
             keep = self.config.model() if keep_selection else ""
-            entries = models if models is not None else self._default_model_entries()
+            if models is None:
+                entries = self._default_model_entries()
+            else:
+                entries = models
             free_only = self.config.free_only()
             self.model_combo.blockSignals(True)
             try:

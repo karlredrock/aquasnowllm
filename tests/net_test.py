@@ -107,7 +107,8 @@ class FakeOpenRouter(object):
                 break
             try:
                 raw_client.settimeout(15)
-                raw_client.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+                raw_client.setsockopt(socket.IPPROTO_TCP,
+                                      socket.TCP_NODELAY, 1)
                 client = context.wrap_socket(raw_client, server_side=True)
             except Exception:  # pragma: no cover - test scaffolding
                 # expected while testing an untrusted CA bundle
@@ -232,9 +233,9 @@ def main():
         check("transport used", client.transport in ("python ssl", "urllib2"),
               client.transport)
 
-        text, usage = client.chat([{"role": "user", "content": "hallo \u00e9"}],
-                                  model="openrouter/free", temperature=0.2,
-                                  max_tokens=64)
+        messages = [{"role": "user", "content": "hallo \u00e9"}]
+        text, usage = client.chat(messages, model="openrouter/free",
+                                  temperature=0.2, max_tokens=64)
         check("direct TLS POST /chat/completions",
               text == u"echo: hallo \u00e9", repr(text))
         check("usage parsed", usage.get("total_tokens") == 12, repr(usage))
@@ -284,7 +285,8 @@ def main():
         bad = A.LanguageModel("wrong", base_url=upstream, cacert_path=ca,
                               timeout=20)
         try:
-            bad.chat([{"role": "user", "content": "x"}], model="openrouter/free")
+            bad.chat([{"role": "user", "content": "x"}],
+                     model="openrouter/free")
             check("401 raised", False)
         except A.APIError as exc:
             check("401 raised", exc.status == 401, str(exc.status))
@@ -310,8 +312,9 @@ def main():
         try:
             warned.list_models()
         except A.APIError as exc:
+            detail = (exc.detail or "").lower()
             check("unknown CA is a clean error",
-                  exc.status == 0 and "certificate" in (exc.detail or "").lower(),
+                  exc.status == 0 and "certificate" in detail,
                   repr(exc.detail)[:160])
         check("missing bundle warned",
               any("was not found" in warning for warning in warned.warnings),

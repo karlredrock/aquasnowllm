@@ -76,9 +76,10 @@ def find_python27():
         if candidate and os.path.isfile(candidate) and \
                 os.access(candidate, os.X_OK):
             try:
-                version = subprocess.check_output(
-                    [candidate, "-c", "import sys; print(sys.version_info[0])"],
-                    stderr=subprocess.STDOUT)
+                probe = [candidate, "-c",
+                         "import sys; print(sys.version_info[0])"]
+                version = subprocess.check_output(probe,
+                                                  stderr=subprocess.STDOUT)
             except Exception:
                 continue
             if version.strip() in (b"2", "2"):
