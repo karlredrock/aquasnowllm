@@ -51,10 +51,10 @@ import time
 
 try:  # Python 2: urlparse() lives in its own module
     from urlparse import urlparse
-    from urllib2 import HTTPError
+    from urllib2 import HTTPError, URLError
 except ImportError:  # Python 3 development path
     from urllib.parse import urlparse
-    from urllib.error import HTTPError
+    from urllib.error import HTTPError, URLError
 
 APP_NAME = "AquaSnowLLM"
 APP_VERSION = "1.0.0"
@@ -1274,6 +1274,10 @@ class LanguageModel(object):
             payload = exc.read()
             self._check_status(status, payload)
             raise
+        except URLError as exc:
+            # urllib2 buries the useful part in ``exc.reason``
+            raise IOError("urllib2: %s" % to_text(
+                getattr(exc, "reason", exc)))
         self._check_status(status, payload)
         return status, payload
 
@@ -1913,8 +1917,7 @@ if QT_API is not None:
 
         def __init__(self, parent, job, client, payload):
             QtCore.QThread.__init__(self, parent)
-            self._job = job
-            self.job = job
+            self.job = job          #: "chat" or "models" (read by the window)
             self._client = client
             self._payload = payload
             self._cancel_event = threading.Event()
@@ -1927,12 +1930,12 @@ if QT_API is not None:
 
         def run(self):
             try:
-                if self._job == "models":
+                if self.job == "models":
                     result = self._client.list_models()
-                elif self._job == "chat":
+                elif self.job == "chat":
                     result = self._client.chat(**self._payload)
                 else:
-                    raise ValueError("Unknown job %r" % self._job)
+                    raise ValueError("Unknown job %r" % self.job)
             except APIError as exc:
                 if not self._cancel_event.is_set():
                     self.signal_failed.emit(exc)

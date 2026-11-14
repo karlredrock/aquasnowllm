@@ -190,6 +190,11 @@ class FakeOpenRouter(object):
         return "404 Not Found", b'{"error": {"message": "not found"}}'
 
 
+def _blocked(*args, **kwargs):
+    """Force ``LanguageModel`` onto its urllib2 fallback."""
+    raise IOError("python ssl transport disabled for this test")
+
+
 def main():
     failures = []
 
@@ -287,7 +292,18 @@ def main():
             check("401 raw detail kept", "auth" in (exc.detail or ""),
                   repr(exc.detail))
 
-        # 4. a missing CA bundle must not crash, only warn
+        # 4. the urllib2 transport must also honour the custom CA bundle
+        #    (it is the third fallback, and the one MacPorts Python 2.7
+        #    uses when ssl.SSLContext is awkward)
+        urllib_client = A.LanguageModel("test-key", base_url=upstream,
+                                        cacert_path=ca, timeout=20)
+        urllib_client._request_ssl = _blocked
+        models = urllib_client.list_models()
+        check("urllib2 fallback works with a custom CA",
+              urllib_client.transport == "urllib2" and len(models) == 3,
+              "%s / %r" % (urllib_client.transport, models))
+
+        # 5. a missing CA bundle must not crash, only warn
         warned = A.LanguageModel("k", base_url=upstream,
                                  cacert_path=os.path.join(folder, "nope.pem"),
                                  timeout=20)
