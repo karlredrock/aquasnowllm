@@ -3454,7 +3454,18 @@ def main(argv=None):
     if QT_API is None:
         sys.stderr.write(
             "%s needs a Qt 4 binding (PyQt4 or PySide) for its window.\n"
-            "Install it and try again -- see README.md.\n" % APP_NAME)
+            "\n"
+            "Python 2.7 does not include Qt, and installing py2app does\n"
+            "not install it either. Install the binding separately:\n"
+            "\n"
+            "    sudo port install py27-pyqt4\n"
+            "\n"
+            "then check it is visible to this interpreter:\n"
+            "\n"
+            "    %s -c \"import PyQt4.QtGui; print('Qt4 OK')\"\n"
+            "\n"
+            "See README.md for the full recipe.\n"
+            % (APP_NAME, sys.executable or "python2.7"))
         return 2
 
     app = QtGui.QApplication([sys.argv[0]])
