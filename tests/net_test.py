@@ -196,8 +196,32 @@ def _blocked(*args, **kwargs):
     raise IOError("python ssl transport disabled for this test")
 
 
+def _describe_environment():
+    """Print what the runner has, so a CI failure is diagnosable."""
+    print("environment:")
+    print("  python      : %s" % sys.version.split()[0])
+    print("  platform    : %s" % sys.platform)
+    try:
+        import ssl
+        print("  ssl         : %s" % getattr(ssl, "OPENSSL_VERSION", "?"))
+    except Exception as exc:
+        print("  ssl         : unavailable (%s)" % exc)
+    openssl = None
+    for candidate in ("openssl", "/usr/bin/openssl"):
+        proc = subprocess.Popen([candidate, "version"],
+                                stdout=subprocess.PIPE,
+                                stderr=subprocess.STDOUT)
+        out, _ = proc.communicate()
+        if proc.returncode == 0:
+            openssl = out.decode("utf-8", "replace").strip()
+            break
+    print("  openssl cli : %s" % (openssl or "NOT FOUND"))
+    sys.stdout.flush()
+
+
 def main():
     failures = []
+    _describe_environment()
 
     def check(label, condition, detail=""):
         if condition:
@@ -210,7 +234,14 @@ def main():
     fake = None
     bridge = None
     try:
-        ca = make_certificates(folder)
+        try:
+            ca = make_certificates(folder)
+        except Exception as exc:
+            check("generate a test certificate", False, str(exc))
+            log = os.path.join(folder, "openssl.log")
+            if os.path.exists(log):
+                print(open(log, "rb").read().decode("utf-8", "replace")[-800:])
+            return 1
         fake = FakeOpenRouter(os.path.join(folder, "server.pem"),
                               os.path.join(folder, "server.key"))
         fake.start()
