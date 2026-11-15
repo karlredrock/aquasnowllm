@@ -32,7 +32,7 @@ machines whose OpenSSL is far too old to complete a modern TLS handshake.
 3. [Configure OpenRouter](#configure-openrouter)
 4. [Free keys, `:free` models and `openrouter/free`](#free-keys-free-models-and-openrouterfree)
 5. [The TLS problem on old Macs](#the-tls-problem-on-old-macs)
-6. [Build the double-clickable `AquaSnowLLM.app`](#build-the-double-clickable-aquasnowllmapp)
+6. [Get the `AquaSnowLLM.app`](#get-the-aquasnowllmapp)
 7. [Files and data](#files-and-data)
 8. [Command-line options](#command-line-options)
 9. [Testing](#testing)
@@ -227,7 +227,40 @@ ends in `/api/v1` is accepted, and a bare host gets `/api/v1` appended.
 > **Security:** a plain `http://` base URL outside `localhost` is flagged in
 > the status bar, because it would send your API key unencrypted.
 
-## Build the double-clickable `AquaSnowLLM.app`
+## Get the `AquaSnowLLM.app`
+
+There are two ways to end up with a double-clickable app. Both produce the
+same bundle layout; they differ in whether Python and Qt get copied inside.
+
+### A. Build the bundle now (works on any machine)
+
+```sh
+python3 tools/build_app.py --zip      # or: make dmg
+```
+
+That writes `dist/AquaSnowLLM.app` and `dist/AquaSnowLLM.app.zip`. The
+bundle is a normal Mac application — `Contents/Info.plist`, a launcher in
+`Contents/MacOS/`, the Python source in `Contents/Resources/` — so you can
+copy the zip to a Mac, double-click it, and the app runs. It is **not**
+frozen: it uses the Python 2.7 that ships with Mac OS X 10.6+ and needs
+PyQt4 (or PySide) installed. That is one command on a Snow Leopard box:
+
+```sh
+sudo port install py27-pyqt4
+```
+
+The launcher looks for an interpreter that can `import PyQt4.QtGui`
+(MacPorts first, then `/usr/bin/python2.7`) and shows a native alert
+pointing at the README if it finds none.
+
+This route exists because freezing is the part that truly requires macOS:
+py2app copies the local Python framework and Qt dylibs, so it cannot run
+from Linux or Windows. `tools/app_test.py` checks the bundle structure,
+the plist keys LaunchServices needs, the launcher's exec bit, that no
+absolute build paths leak in, and that the zip round-trips — `make
+apptest` runs it.
+
+### B. Build a frozen, self-contained bundle on the Mac (py2app)
 
 `setup.py` is a complete **py2app** configuration:
 
@@ -256,7 +289,10 @@ cd dist && zip -ry AquaSnowLLM-1.0.0.zip AquaSnowLLM.app
 
 Caveats worth knowing:
 
-* py2app must run **on macOS**; it cannot cross-build from Linux.
+* py2app must run **on macOS**; it cannot cross-build from Linux. Use
+  route A above if you only have a non-Mac machine.
+* A frozen bundle is self-contained (no PyQt4 install needed on the target
+  Mac) but is tied to the OS and architecture it was built on.
 * The bundle's `CFBundleIdentifier` is `com.aquasnowllm.app`, minimum system
   version is `10.6`, and the architecture defaults to `x86_64` — edit `arch`
   in `setup.py` for `i386` or a Universal binary.
@@ -289,14 +325,16 @@ explains this in the status bar instead of dying.
 
 ```
 aquasnowllm.py              the whole application (Python 2.7, PyQt4)
-setup.py                    py2app configuration for AquaSnowLLM.app
-requirements.txt            explains that there are no pip requirements
-Makefile                    make check / run / bridge / clean
+setup.py                    py2app config: frozen .app, built on macOS
+tools/build_app.py          .app bundle + zip, buildable on any OS
+tools/app_test.py           checks the built bundle and its zip
 tools/gui_smoke.py          headless GUI test (PyQt5 alias, modern machine)
 tools/py2_syntax_check.py   "no Python 3 syntax" gate for CI
 tests/net_test.py           offline TLS/bridge/API integration test
-assets/README.txt            bundled resource placeholder
-.github/workflows/checks.yml  CI: syntax gate, logic, TLS, window
+requirements.txt            explains that there are no pip requirements
+Makefile                    make check / run / bridge / app / clean
+assets/README.txt           bundled resource placeholder
+.github/workflows/checks.yml  CI: syntax gate, logic, TLS, window, bundle
 ```
 
 ## Command-line options
@@ -328,6 +366,10 @@ python3 tools/gui_smoke.py
 
 # 4. the Python 2.7 syntax gate
 python3 tools/py2_syntax_check.py
+
+# 5. build the .app and verify the bundle
+python3 tools/build_app.py --zip
+python3 tools/app_test.py
 ```
 
 `tools/py2_syntax_check.py` compiles the sources with CPython 2.7 when it is

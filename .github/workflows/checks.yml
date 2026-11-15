@@ -61,3 +61,19 @@ jobs:
         env:
           QT_QPA_PLATFORM: offscreen
         run: python3 tools/gui_smoke.py
+
+  bundle:
+    name: .app bundle
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build the bundle
+        run: python3 tools/build_app.py --zip
+      - name: Verify the bundle and its zip
+        run: python3 tools/app_test.py
+      - name: Keep it as a downloadable artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: AquaSnowLLM.app
+          path: dist/AquaSnowLLM.app.zip
+          if-no-files-found: error
