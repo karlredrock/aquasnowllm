@@ -13,9 +13,10 @@ SDK.  ``setup.py`` does that when you run it on a Mac.
 This script builds the other half: the bundle *structure* (``Contents/
 Info.plist``, ``Contents/MacOS/``, ``Contents/Resources/``) plus a
 launcher that finds the system Python 2.7 and PyQt4 and runs the app.
-Mac OS X 10.6 ships Python 2.7 in ``/usr/bin``, so on a Snow Leopard Mac
-that already has PyQt4 installed (one MacPorts command) this bundle
-works when double-clicked -- and it is also the exact same directory
+On 10.6 the system Python is 2.6.1, so a Snow Leopard Mac needs Python
+2.7 and PyQt4 from MacPorts first (``sudo port install python27
+py27-pyqt4``); from Lion onward 2.7 is present but PyQt4 still is not.
+With both installed this bundle works when double-clicked -- and it is also the exact same directory
 tree py2app produces, so anything that inspects the bundle is happy.
 
 The result is a real ``.app`` you can zip and hand to someone.

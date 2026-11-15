@@ -2,7 +2,8 @@
 # -*- coding: utf-8 -*-
 """AquaSnowLLM -- a small, native-feeling Aqua chat client for OpenRouter.
 
-Written for Python 2.7 (the system Python of Mac OS X 10.6 Snow Leopard)
+Written for Python 2.7, targeting Mac OS X 10.6 Snow Leopard (whose own
+system Python is 2.6.1, so 2.7 comes from MacPorts or python.org)
 using PyQt4 or PySide (Qt 4).  It is deliberately conservative:
 
   * no Python 3 syntax anywhere (no f-strings, no annotations, no

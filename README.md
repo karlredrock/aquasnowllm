@@ -64,8 +64,10 @@ machines whose OpenSSL is far too old to complete a modern TLS handshake.
 
 > ### You must install PyQt4. Python 2.7 is not enough.
 >
-> Python 2.7 is preinstalled on Mac OS X 10.6, but **it does not include
-> Qt**, and AquaSnowLLM needs a Qt 4 binding to open its window. Without
+> Mac OS X 10.6 ships **Python 2.6.1**, not 2.7 -- so even the interpreter
+> has to be installed. (2.7 arrives with Lion; 2.6 is too old for this app.)
+> And Python never includes **Qt**, which AquaSnowLLM needs to open its
+> window. Without
 > one the app exits with *"AquaSnowLLM needs a Qt 4 binding (PyQt4 or
 > PySide)"*. Installing py2app does **not** install PyQt4 — they are
 > separate packages, and you need both.
@@ -254,11 +256,11 @@ That writes `dist/AquaSnowLLM.app` and `dist/AquaSnowLLM.app.zip`. The
 bundle is a normal Mac application — `Contents/Info.plist`, a launcher in
 `Contents/MacOS/`, the Python source in `Contents/Resources/` — so you can
 copy the zip to a Mac, double-click it, and the app runs. It is **not**
-frozen: it uses the Python 2.7 that ships with Mac OS X 10.6+ and needs
-PyQt4 (or PySide) installed. That is one command on a Snow Leopard box:
+frozen: it uses a Python 2.7 and PyQt4 (or PySide) already on the Mac.
+On 10.6 both have to be installed -- the system Python there is 2.6.1:
 
 ```sh
-sudo port install py27-pyqt4
+sudo port install python27 py27-pyqt4
 ```
 
 The launcher looks for an interpreter that can `import PyQt4.QtGui`
