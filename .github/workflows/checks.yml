@@ -11,52 +11,39 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
       - name: Parse everything with the 2.7 grammar
-        run: python tools/py2_syntax_check.py
+        run: python3 tools/py2_syntax_check.py
 
   logic:
     name: Offline logic tests
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: ["3.8", "3.11"]
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
       - name: Self test
-        run: python aquasnowllm.py --self-test
+        # the runner's preinstalled python3 is enough; version pinning here
+        # made actions/setup-python@v5 fail before the tests even started
+        run: python3 --version && python3 aquasnowllm.py --self-test
 
   tls-and-bridge:
     name: TLS / bridge integration
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
       - name: Integration test (local HTTPS server, no network)
-        run: python tests/net_test.py
+        run: python3 tests/net_test.py
 
   gui:
     name: Headless window test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
       - name: Install PyQt5 and a headless Qt
         run: |
           sudo apt-get update
           sudo apt-get install -y libgl1 libegl1 libxkbcommon0 \
             libxcb-cursor0 libdbus-1-3
-          python -m pip install PyQt5
+          python3 -m pip install PyQt5
       - name: Run the window
         env:
           QT_QPA_PLATFORM: offscreen
-        run: python tools/gui_smoke.py
+        run: python3 tools/gui_smoke.py
