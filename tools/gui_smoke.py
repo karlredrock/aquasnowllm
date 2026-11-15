@@ -263,7 +263,6 @@ def main():
           repr([m["content"] for m in chat["messages"]]))
 
     # -- second chat + switching --------------------------------------
-    first_id = window.current_id
     window.new_chat()
     pump(app, 0.1)
     check("new chat created", window.session_list.count() == 2,

@@ -6,9 +6,11 @@ __pycache__/
 build/
 dist/
 
-# py2app output
+# py2app / setuptools output
 *.app/
 *.dmg
+.eggs/
+*.egg
 
 # editor / OS
 .DS_Store

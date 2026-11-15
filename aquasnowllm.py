@@ -1395,7 +1395,26 @@ else:  # pragma: no cover - development convenience
     from urllib.request import build_opener as _build_opener
     from urllib.request import HTTPSHandler
 
-    _HTTPSHandler = None
+    class _HTTPSHandler(HTTPSHandler):
+        """``HTTPSHandler`` that verifies against a custom CA bundle.
+
+        Python 3 spells the same hook differently: ``HTTPSConnection``
+        takes the context in its constructor (as on 2.7), but the handler
+        is given a ``Request`` object rather than a URL string.
+        """
+
+        def __init__(self, context):
+            HTTPSHandler.__init__(self)
+            self._context = context
+
+        def https_open(self, request):  # noqa: N802 (urllib API)
+            return self.do_open(self._connection, request)
+
+        def _connection(self, host, **kwargs):
+            import http.client
+
+            kwargs["context"] = self._context
+            return http.client.HTTPSConnection(host, **kwargs)
 
 
 # ---------------------------------------------------------------------------

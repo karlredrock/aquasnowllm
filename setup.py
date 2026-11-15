@@ -59,10 +59,10 @@ includes = []
 if sys.version_info[0] == 2:
     includes.append("urllib2")
     includes.append("httplib")
-try:
-    import requests  # noqa: F401  (optional: used only if the user wants it)
+try:  # optional: the app itself only needs the standard library
+    import requests
 except ImportError:
-    pass
+    requests = None
 else:  # pragma: no cover - depends on the build machine
     packages.append("requests")
 
