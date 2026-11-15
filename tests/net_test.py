@@ -48,19 +48,26 @@ def make_certificates(folder):
 
     with open(ext, "w") as handle:
         handle.write("subjectAltName=DNS:localhost,IP:127.0.0.1\n"
-                     "basicConstraints=CA:FALSE\n")
-    # deliberately an "old style" CA: no basicConstraints/keyUsage.  TLS
-    # stacks from OpenSSL 1.1 on reject that under VERIFY_X509_STRICT, and
-    # Python 3.13+ turns that flag on by default -- so this is the shape a
-    # user's hand-built cacert.pem usually has.  make_ssl_context() must
-    # still accept it while verifying the chain.
+                     "basicConstraints=critical,CA:FALSE\n"
+                     "keyUsage=critical,digitalSignature,keyEncipherment\n"
+                     "extendedKeyUsage=serverAuth\n")
+    # A properly formed CA.  OpenSSL 3.x refuses to treat a trust anchor
+    # that has no keyUsage/basicConstraints as a CA at all ("invalid CA
+    # certificate"), and Python 3.13+ additionally turns on
+    # VERIFY_X509_STRICT by default.  The bundle a user downloads
+    # (curl.se/ca/cacert.pem) is well formed, so the fixture must be too --
+    # otherwise this test fails for reasons unrelated to AquaSnowLLM.
     ca_cnf = os.path.join(folder, "ca.cnf")
     with open(ca_cnf, "w") as handle:
         handle.write("[req]\ndistinguished_name=dn\n[dn]\n"
-                     "[bare]\n# no extensions at all\n")
+                     "[v3_ca]\n"
+                     "basicConstraints=critical,CA:TRUE\n"
+                     "keyUsage=critical,keyCertSign,cRLSign\n"
+                     "subjectKeyIdentifier=hash\n")
     run(["openssl", "req", "-x509", "-newkey", "rsa:2048", "-nodes",
-         "-keyout", key, "-out", crt, "-days", "2", "-subj", "/CN=localhost",
-         "-config", ca_cnf, "-extensions", "bare"])
+         "-keyout", key, "-out", crt, "-days", "2",
+         "-subj", "/CN=AquaSnowLLM Test CA",
+         "-config", ca_cnf, "-extensions", "v3_ca"])
     run(["openssl", "req", "-newkey", "rsa:2048", "-nodes",
          "-keyout", os.path.join(folder, "server.key"), "-out", csr,
          "-subj", "/CN=localhost"])

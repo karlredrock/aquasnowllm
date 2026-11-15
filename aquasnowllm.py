@@ -379,16 +379,13 @@ def make_ssl_context(cacert_path=""):
         warnings.append("CA bundle %s was not found; using the system "
                         "certificates." % path)
         path = text_type("")
-    context = None
     if hasattr(ssl, "create_default_context"):
         try:
-            context = ssl.create_default_context(cafile=path or None)
+            return ssl.create_default_context(cafile=path or None), warnings
         except Exception as exc:  # pragma: no cover - corrupted bundle
             warnings.append("Could not load %s (%s); using the system "
                             "certificates." % (path, exc))
-            context = ssl.create_default_context()
-        _relax_strict_checks(context)
-        return context, warnings
+            return ssl.create_default_context(), warnings
     context = ssl.SSLContext(ssl.PROTOCOL_SSLv23)  # pragma: no cover
     for option in ("OP_NO_SSLv2", "OP_NO_SSLv3"):
         if hasattr(ssl, option):
@@ -400,26 +397,7 @@ def make_ssl_context(cacert_path=""):
             context.load_default_certs()
     except Exception as exc:
         warnings.append("Could not load certificates (%s)." % exc)
-    _relax_strict_checks(context)
     return context, warnings
-
-
-def _relax_strict_checks(context):
-    """Accept private CAs whose certificates predate the strict rules.
-
-    Python 3.13 turned on ``VERIFY_X509_STRICT`` by default.  That flag
-    rejects certificates missing ``basicConstraints`` / ``keyUsage`` --
-    which is exactly what a hand-made CA bundle and Snow Leopard era tools
-    produce.  Certificate *verification* stays on; only the extra
-    strictness is dropped, so an invalid chain is still refused.
-    """
-    strict = getattr(ssl, "VERIFY_X509_STRICT", 0)
-    if not strict:
-        return
-    try:
-        context.verify_flags = context.verify_flags & ~strict
-    except Exception:  # pragma: no cover - ancient or frozen contexts
-        pass
 
 
 def wrap_tls(context, sock, host):
@@ -481,7 +459,6 @@ def connect_tls(host, port, cacert_path, timeout):
         relaxed.load_verify_locations(cacert_path)
     else:
         relaxed.load_default_certs()
-    _relax_strict_checks(relaxed)
     raw_sock = socket.create_connection((host, port), timeout)
     raw_sock.settimeout(timeout)
     wrapped = relaxed.wrap_socket(raw_sock)
@@ -3300,7 +3277,6 @@ def _self_test():
           normalize_base_url("ftp://example.com")[0] ==
           OPENROUTER_BASE_URL)
     check("cacert discovery prefers the data folder", _selftest_cacert())
-    check("tls keeps verification but drops strict x509", _selftest_strict())
     check("split_api_base",
           split_api_base("https://openrouter.ai/api/v1") ==
           ("https://openrouter.ai", "/api/v1"))
@@ -3315,17 +3291,6 @@ def _self_test():
         return 1
     print("All checks passed.")
     return 0
-
-
-def _selftest_strict():
-    """Verification stays on; the Python 3.13+ strict flag is cleared."""
-    context, _warnings = make_ssl_context("")
-    if getattr(ssl, "VERIFY_X509_STRICT", 0) and \
-            context.verify_flags & ssl.VERIFY_X509_STRICT:
-        return False
-    if context.verify_mode != ssl.CERT_REQUIRED:
-        return False
-    return bool(context.check_hostname)
 
 
 def _selftest_cacert():
