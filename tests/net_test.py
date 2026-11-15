@@ -49,8 +49,18 @@ def make_certificates(folder):
     with open(ext, "w") as handle:
         handle.write("subjectAltName=DNS:localhost,IP:127.0.0.1\n"
                      "basicConstraints=CA:FALSE\n")
+    # deliberately an "old style" CA: no basicConstraints/keyUsage.  TLS
+    # stacks from OpenSSL 1.1 on reject that under VERIFY_X509_STRICT, and
+    # Python 3.13+ turns that flag on by default -- so this is the shape a
+    # user's hand-built cacert.pem usually has.  make_ssl_context() must
+    # still accept it while verifying the chain.
+    ca_cnf = os.path.join(folder, "ca.cnf")
+    with open(ca_cnf, "w") as handle:
+        handle.write("[req]\ndistinguished_name=dn\n[dn]\n"
+                     "[bare]\n# no extensions at all\n")
     run(["openssl", "req", "-x509", "-newkey", "rsa:2048", "-nodes",
-         "-keyout", key, "-out", crt, "-days", "2", "-subj", "/CN=localhost"])
+         "-keyout", key, "-out", crt, "-days", "2", "-subj", "/CN=localhost",
+         "-config", ca_cnf, "-extensions", "bare"])
     run(["openssl", "req", "-newkey", "rsa:2048", "-nodes",
          "-keyout", os.path.join(folder, "server.key"), "-out", csr,
          "-subj", "/CN=localhost"])
@@ -254,7 +264,16 @@ def main():
         time.sleep(0.5)
         client = A.LanguageModel("test-key", base_url=upstream,
                                  cacert_path=ca, timeout=20)
-        models = client.list_models()
+        try:
+            models = client.list_models()
+        except Exception as exc:
+            # a broken TLS path must be a named failure, not a traceback:
+            # earlier this crashed with a bare "Could not reach <url>" and
+            # told us nothing about *why*
+            check("direct TLS GET /models", False,
+                  "%s: %s (transport=%s)"
+                  % (type(exc).__name__, exc, getattr(client, "transport", "?")))
+            return 1
         check("direct TLS GET /models", len(models) == 3,
               "got %r" % (models,))
         free = [model["id"] for model in models if model["free"]]

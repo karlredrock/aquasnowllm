@@ -176,6 +176,14 @@ This fixes *certificate verify failed* (expired 2013-era roots). It does not
 fix *protocol version* errors — those mean the TLS stack itself is too old,
 which is what option 2 is for.
 
+If you build a *private* CA bundle by hand, plain old `openssl` tooling is
+fine. Python 3.13 and newer switched on stricter X.509 checks
+(`VERIFY_X509_STRICT`), which reject certificates that omit the
+`basicConstraints` / `keyUsage` fields; AquaSnowLLM clears that extra
+strictness for its own connections so such a bundle keeps working.
+Certificate and chain *verification* stay fully enabled — an untrusted or
+mismatched certificate is still refused.
+
 ### 2. The bundled HTTP → HTTPS bridge (works even with old OpenSSL)
 
 The bridge listens on `http://127.0.0.1:8787` and forwards to
