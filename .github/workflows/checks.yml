@@ -30,7 +30,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Integration test (local HTTPS server, no network)
-        run: python3 tests/net_test.py
+        # annotations are readable through the API even when the raw job log
+        # is not, so echo the interesting lines on failure
+        run: |
+          set +e
+          python3 tests/net_test.py 2>&1 | tee /tmp/net.log
+          code=${PIPESTATUS[0]}
+          if [ "$code" -ne 0 ]; then
+            head -6 /tmp/net.log | while IFS= read -r line; do
+              echo "::error::$line"
+            done
+            grep -iE "fail|error|traceback|not ok" /tmp/net.log | head -4 | while IFS= read -r line; do
+              echo "::error::$line"
+            done
+          fi
+          exit "$code"
 
   gui:
     name: Headless window test
