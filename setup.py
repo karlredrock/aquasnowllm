@@ -4,13 +4,24 @@
 
 Building an ``.app``
 --------------------
+Two packages are needed.  py2app is only the packager -- it does NOT
+install Qt, and a bundle built without PyQt4 starts and immediately dies
+with a Qt import error.
+
     # one time, on the Snow Leopard machine that will build the bundle
-    sudo port install python27 py27-pyqt4 py27-requests
+    sudo port install python27
+    sudo port install py27-pyqt4       # REQUIRED: this is Qt itself
+    sudo port install py27-py2app      # the packager
     sudo port select --set python python27
-    sudo port install py27-py2app
+
+    # confirm the binding is visible to the interpreter that will build
+    python2.7 -c "import PyQt4.QtGui; print('Qt4 OK')"
 
     # from this directory
     python2.7 setup.py py2app
+
+If py2app comes from pip rather than MacPorts, pin it: 0.28.9.  Version
+0.28.10 declares requires_python >= 3.10 and will not install on 2.7.
 
 The result is ``dist/AquaSnowLLM.app`` -- a double-clickable, standalone
 bundle.  It can be zipped and copied to other 10.6+ Macs.

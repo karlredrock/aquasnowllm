@@ -1,9 +1,27 @@
 # AquaSnowLLM
 
-A lightweight, native-feeling **Aqua chat client for [OpenRouter](https://openrouter.ai)**,
-written for **Python 2.7 + PyQt4** so it runs on Macs as old as **Mac OS X 10.6
-Snow Leopard** — including the free API keys and `:free` models, and including
-machines whose OpenSSL is far too old to complete a modern TLS handshake.
+A lightweight **chat client for [OpenRouter](https://openrouter.ai)** that runs
+on Macs as old as **Mac OS X 10.6 Snow Leopard** — including free API keys and
+`:free` models, and including machines whose OpenSSL is too old to complete a
+modern TLS handshake.
+
+It ships as **two front ends over one shared core**:
+
+| | `aquasnow.py` | `aquasnowllm.py` |
+| --- | --- | --- |
+| Toolkit | **tkinter** (stdlib) | PyQt4 / PySide |
+| Install | **nothing** — Tk ships with Python | `port install py27-pyqt4` |
+| Looks | plain, native-ish widgets | real Aqua controls (`setStyle("Macintosh")`) |
+| Weight | lighter | heavier Qt dependency |
+
+**Start with `aquasnow.py`** if you want it running in one command. Both read
+and write the same `~/.aquasnowllm` files, so you can switch between them and
+your conversations follow.
+
+```sh
+python2.7 aquasnow.py       # no dependencies at all
+python2.7 aquasnowllm.py    # needs PyQt4
+```
 
 ```
 ┌────────────────────────────────────────────────────────────────────────┐
@@ -62,8 +80,15 @@ machines whose OpenSSL is far too old to complete a modern TLS handshake.
 
 ## Install on Snow Leopard (or newer)
 
-Python 2.7 is preinstalled on 10.6, but PyQt4 is not. Use MacPorts (the most
-reliable route on Snow Leopard):
+> ### You must install PyQt4. Python 2.7 is not enough.
+>
+> Mac OS X 10.6 ships **Python 2.6.1**, not 2.7 -- so even the interpreter
+> has to be installed. (2.7 arrives with Lion; 2.6 is too old for this app.)
+> And Python never includes **Qt**, which AquaSnowLLM needs to open its
+> window. Without
+> one the app exits with *"AquaSnowLLM needs a Qt 4 binding (PyQt4 or
+> PySide)"*. Installing py2app does **not** install PyQt4 — they are
+> separate packages, and you need both.
 
 ```sh
 # 1. Xcode 3.2.6 / 4.x command line tools are required by MacPorts
@@ -72,10 +97,17 @@ reliable route on Snow Leopard):
 # 2. MacPorts itself (choose the port for the machine's OS / arch)
 #    https://www.macports.org/install.php
 
+# 3. the interpreter, the Qt 4 binding, and (for the .app) the packager
 sudo port install python27
-sudo port install py27-pyqt4
+sudo port install py27-pyqt4       # <- required, this is Qt itself
 sudo port select --set python python27
 sudo port select --set python2 python27
+```
+
+Check it worked before going further:
+
+```sh
+/opt/local/bin/python2.7 -c "import PyQt4.QtGui; print('Qt4 binding OK')"
 ```
 
 Then run it:
@@ -242,11 +274,11 @@ That writes `dist/AquaSnowLLM.app` and `dist/AquaSnowLLM.app.zip`. The
 bundle is a normal Mac application — `Contents/Info.plist`, a launcher in
 `Contents/MacOS/`, the Python source in `Contents/Resources/` — so you can
 copy the zip to a Mac, double-click it, and the app runs. It is **not**
-frozen: it uses the Python 2.7 that ships with Mac OS X 10.6+ and needs
-PyQt4 (or PySide) installed. That is one command on a Snow Leopard box:
+frozen: it uses a Python 2.7 and PyQt4 (or PySide) already on the Mac.
+On 10.6 both have to be installed -- the system Python there is 2.6.1:
 
 ```sh
-sudo port install py27-pyqt4
+sudo port install python27 py27-pyqt4
 ```
 
 The launcher looks for an interpreter that can `import PyQt4.QtGui`
@@ -262,17 +294,43 @@ apptest` runs it.
 
 ### B. Build a frozen, self-contained bundle on the Mac (py2app)
 
-`setup.py` is a complete **py2app** configuration:
+**Two packages are required, not one.** py2app is only the packager; Qt 4
+has to be installed separately or the frozen app will build "successfully"
+and then fail to start with a Qt import error:
 
 ```sh
-# on the Snow Leopard machine (build on the oldest OS you must support)
-sudo port install py27-py2app
+sudo port install py27-pyqt4     # Qt itself  <- forget this and it breaks
+sudo port install py27-py2app    # the packager
+```
+
+Verify both before building — this is the step that catches a missing Qt:
+
+```sh
+/opt/local/bin/python2.7 -c "import PyQt4.QtGui; print('Qt4 OK')"
+/opt/local/bin/python2.7 -c "import py2app; print('py2app OK')"
+```
+
+Then build:
+
+```sh
 cd aquasnowllm
 python2.7 setup.py py2app
 open dist/AquaSnowLLM.app
 ```
 
-Result: `dist/AquaSnowLLM.app`, a standalone bundle for **Mac OS X 10.6+**.
+Result: `dist/AquaSnowLLM.app`, a standalone bundle for **Mac OS X 10.6+**
+with Python and Qt copied inside (expect ~150–250 MB).
+
+If you install py2app with **pip** rather than MacPorts, pin **0.28.9**:
+
+```sh
+python2.7 -m pip install "py2app==0.28.9"
+```
+
+Do not use 0.28.10. Despite advertising a Python 2.7 classifier, its
+metadata declares `requires_python >= 3.10`, so pip refuses it on 2.7.
+At 0.28.9 and earlier the `requires_python` field is absent, which is what
+lets it install there.
 
 Useful variations:
 
@@ -289,6 +347,9 @@ cd dist && zip -ry AquaSnowLLM-1.0.0.zip AquaSnowLLM.app
 
 Caveats worth knowing:
 
+* **PyQt4 is not optional and py2app does not bring it.** A machine with
+  Python 2.7 + py2app but no PyQt4 will produce a `.app` that crashes on
+  launch. If `import PyQt4.QtGui` fails, stop and install `py27-pyqt4`.
 * py2app must run **on macOS**; it cannot cross-build from Linux. Use
   route A above if you only have a non-Mac machine.
 * A frozen bundle is self-contained (no PyQt4 install needed on the target
@@ -299,7 +360,9 @@ Caveats worth knowing:
 * Drop an `assets/AquaSnowLLM.icns` in place and it is used as the app icon
   (and an `assets/cacert.pem` is bundled into `Contents/Resources`).
 * If you build with MacPorts Python, the bundle embeds that interpreter and
-  is therefore tied to the OS it was built on. Build with Apple's
+  is therefore tied to the OS it was built on.
+* Frozen bundles are large (~150–250 MB) because they carry Python and Qt.
+  Route A is ~36 KB but needs PyQt4 on the target Mac; pick per audience. Build with Apple's
   `/usr/bin/python2.7` to depend only on system frameworks — but then PyQt4
   must be installed for *that* interpreter (the `.dmg` from riverbank).
 
@@ -324,10 +387,13 @@ explains this in the status bar instead of dying.
 **Repo layout**
 
 ```
-aquasnowllm.py              the whole application (Python 2.7, PyQt4)
+aquasnow.py                 tkinter edition (no dependencies)
+aquasnowllm.py              PyQt4 edition, and the shared core
 setup.py                    py2app config: frozen .app, built on macOS
 tools/build_app.py          .app bundle + zip, buildable on any OS
 tools/app_test.py           checks the built bundle and its zip
+tools/tk_mock_test.py       drives the tkinter UI against a fake Tk
+tools/tk_window_smoke.py    opens a real Tk window (needs a display)
 tools/gui_smoke.py          headless GUI test (PyQt5 alias, modern machine)
 tools/py2_syntax_check.py   "no Python 3 syntax" gate for CI
 tests/net_test.py           offline TLS/bridge/API integration test
@@ -367,7 +433,14 @@ python3 tools/gui_smoke.py
 # 4. the Python 2.7 syntax gate
 python3 tools/py2_syntax_check.py
 
-# 5. build the .app and verify the bundle
+# 5. the tkinter edition: logic, then the real UI against a mock
+python3 aquasnow.py --self-test
+python3 tools/tk_mock_test.py
+
+# 6. a real Tk window (needs Tk + a display; CI uses xvfb-run)
+python3 tools/tk_window_smoke.py
+
+# 7. build the .app and verify the bundle
 python3 tools/build_app.py --zip
 python3 tools/app_test.py
 ```

@@ -7,7 +7,7 @@ PY2 ?= python2.7
 PY3 ?= python3
 PIP  = $(PY3) -m pip
 
-.PHONY: help check syntax selftest net gui app lint run bridge clean
+.PHONY: help check syntax selftest net gui app lint run bridge clean tk tkcheck
 
 help:
 	@echo "make check     run every offline check"
@@ -18,6 +18,8 @@ help:
 	@echo "make app       build dist/AquaSnowLLM.app (runs anywhere)"
 	@echo "make apptest   verify the built bundle"
 	@echo "make dmg       .app + zip, ready to hand out"
+	@echo "make tk        launch the tkinter edition"
+	@echo "make tkcheck   self-test + mock-driven UI test for tkinter"
 	@echo "make lint      pyflakes, if installed"
 	@echo "make run       launch the app with $(PY2)"
 	@echo "make bridge    run the HTTP-to-HTTPS bridge only"
@@ -36,6 +38,13 @@ net:
 
 gui:
 	QT_QPA_PLATFORM=offscreen $(PY3) tools/gui_smoke.py
+
+tk:
+	$(PY2) aquasnow.py
+
+tkcheck:
+	$(PY3) aquasnow.py --self-test
+	$(PY3) tools/tk_mock_test.py
 
 app:
 	$(PY3) tools/build_app.py

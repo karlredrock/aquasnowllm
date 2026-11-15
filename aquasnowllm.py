@@ -2,7 +2,8 @@
 # -*- coding: utf-8 -*-
 """AquaSnowLLM -- a small, native-feeling Aqua chat client for OpenRouter.
 
-Written for Python 2.7 (the system Python of Mac OS X 10.6 Snow Leopard)
+Written for Python 2.7, targeting Mac OS X 10.6 Snow Leopard (whose own
+system Python is 2.6.1, so 2.7 comes from MacPorts or python.org)
 using PyQt4 or PySide (Qt 4).  It is deliberately conservative:
 
   * no Python 3 syntax anywhere (no f-strings, no annotations, no
@@ -3454,7 +3455,18 @@ def main(argv=None):
     if QT_API is None:
         sys.stderr.write(
             "%s needs a Qt 4 binding (PyQt4 or PySide) for its window.\n"
-            "Install it and try again -- see README.md.\n" % APP_NAME)
+            "\n"
+            "Python 2.7 does not include Qt, and installing py2app does\n"
+            "not install it either. Install the binding separately:\n"
+            "\n"
+            "    sudo port install py27-pyqt4\n"
+            "\n"
+            "then check it is visible to this interpreter:\n"
+            "\n"
+            "    %s -c \"import PyQt4.QtGui; print('Qt4 OK')\"\n"
+            "\n"
+            "See README.md for the full recipe.\n"
+            % (APP_NAME, sys.executable or "python2.7"))
         return 2
 
     app = QtGui.QApplication([sys.argv[0]])

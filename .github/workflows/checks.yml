@@ -77,3 +77,21 @@ jobs:
           name: AquaSnowLLM.app
           path: dist/AquaSnowLLM.app.zip
           if-no-files-found: error
+
+  tkinter-edition:
+    name: tkinter edition
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Logic self-test (no window needed)
+        run: python3 aquasnow.py --self-test
+      - name: Drive the UI against a mock Tk
+        run: python3 tools/tk_mock_test.py
+      - name: Python 2.7 syntax gate
+        run: python3 tools/py2_syntax_check.py aquasnow.py aquasnowllm.py
+      - name: Install Tk and open a real window
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3-tk xvfb
+      - name: Real window smoke test
+        run: xvfb-run -a python3 tools/tk_window_smoke.py

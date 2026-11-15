@@ -41,7 +41,15 @@ DEFAULT_FILES = [
 #: Constructs that either do not exist in 2.7 or produce subtly wrong
 #: behaviour there.  Each entry is (label, compiled regex, allowed-in-regex).
 FORBIDDEN = [
-    ("f-string", re.compile(r"""(?<![\w'"])[fF]['"]"""), None),
+    # An f-string is f (or F) immediately followed by a quote, where the f
+    # begins a token: start of line, whitespace, or an opening/separating
+    # character.  '+' is deliberately *not* in that set, because a GUI
+    # accelerator written as accelerator="Cmd+F" would otherwise read as F
+    # followed by a quote.  A prefixed literal like +f"x" is not valid 2.7
+    # anyway, and the lib2to3 grammar parse still rejects it.
+    ("f-string", re.compile(
+        r"""(?:(?<=^)|(?<=[\s([{,:=%~&|!?;<>@]))[fF]['"]""",
+        re.MULTILINE), None),
     ("nonlocal", re.compile(r"^\s*nonlocal\s+\w", re.MULTILINE), None),
     ("yield from", re.compile(r"\byield\s+from\b"), None),
     ("async/await", re.compile(r"^\s*(async\s+def|await\s)", re.MULTILINE),

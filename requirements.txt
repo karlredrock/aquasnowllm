@@ -9,5 +9,12 @@
 # Optional, not used by default (the client speaks urllib2/ssl directly):
 #   requests
 #
-# Packaging (macOS only):
-#   py2app==0.28.10        # the last release that supports Python 2.7
+# Packaging (macOS only).  BOTH of these are needed to freeze the app --
+# py2app alone produces a bundle with no Qt 4 inside it:
+#   sudo port install py27-pyqt4
+#   sudo port install py27-py2app
+#
+# If you install py2app with pip instead, pin 0.28.9:
+#   python2.7 -m pip install "py2app==0.28.9"
+# 0.28.10 is NOT usable -- despite listing a Python 2.7 classifier its
+# metadata says requires_python >= 3.10, so pip refuses it on 2.7.
