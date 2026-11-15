@@ -1,9 +1,27 @@
 # AquaSnowLLM
 
-A lightweight, native-feeling **Aqua chat client for [OpenRouter](https://openrouter.ai)**,
-written for **Python 2.7 + PyQt4** so it runs on Macs as old as **Mac OS X 10.6
-Snow Leopard** — including the free API keys and `:free` models, and including
-machines whose OpenSSL is far too old to complete a modern TLS handshake.
+A lightweight **chat client for [OpenRouter](https://openrouter.ai)** that runs
+on Macs as old as **Mac OS X 10.6 Snow Leopard** — including free API keys and
+`:free` models, and including machines whose OpenSSL is too old to complete a
+modern TLS handshake.
+
+It ships as **two front ends over one shared core**:
+
+| | `aquasnow.py` | `aquasnowllm.py` |
+| --- | --- | --- |
+| Toolkit | **tkinter** (stdlib) | PyQt4 / PySide |
+| Install | **nothing** — Tk ships with Python | `port install py27-pyqt4` |
+| Looks | plain, native-ish widgets | real Aqua controls (`setStyle("Macintosh")`) |
+| Weight | lighter | heavier Qt dependency |
+
+**Start with `aquasnow.py`** if you want it running in one command. Both read
+and write the same `~/.aquasnowllm` files, so you can switch between them and
+your conversations follow.
+
+```sh
+python2.7 aquasnow.py       # no dependencies at all
+python2.7 aquasnowllm.py    # needs PyQt4
+```
 
 ```
 ┌────────────────────────────────────────────────────────────────────────┐
@@ -369,10 +387,13 @@ explains this in the status bar instead of dying.
 **Repo layout**
 
 ```
-aquasnowllm.py              the whole application (Python 2.7, PyQt4)
+aquasnow.py                 tkinter edition (no dependencies)
+aquasnowllm.py              PyQt4 edition, and the shared core
 setup.py                    py2app config: frozen .app, built on macOS
 tools/build_app.py          .app bundle + zip, buildable on any OS
 tools/app_test.py           checks the built bundle and its zip
+tools/tk_mock_test.py       drives the tkinter UI against a fake Tk
+tools/tk_window_smoke.py    opens a real Tk window (needs a display)
 tools/gui_smoke.py          headless GUI test (PyQt5 alias, modern machine)
 tools/py2_syntax_check.py   "no Python 3 syntax" gate for CI
 tests/net_test.py           offline TLS/bridge/API integration test
@@ -412,7 +433,14 @@ python3 tools/gui_smoke.py
 # 4. the Python 2.7 syntax gate
 python3 tools/py2_syntax_check.py
 
-# 5. build the .app and verify the bundle
+# 5. the tkinter edition: logic, then the real UI against a mock
+python3 aquasnow.py --self-test
+python3 tools/tk_mock_test.py
+
+# 6. a real Tk window (needs Tk + a display; CI uses xvfb-run)
+python3 tools/tk_window_smoke.py
+
+# 7. build the .app and verify the bundle
 python3 tools/build_app.py --zip
 python3 tools/app_test.py
 ```
