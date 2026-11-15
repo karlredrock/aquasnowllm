@@ -69,9 +69,18 @@ def main():
               plist.get("LSMinimumSystemVersion") == "10.6")
         check("CFBundleIdentifier is reverse-DNS",
               "." in plist.get("CFBundleIdentifier", ""))
+        # read the version out of the app so a bump cannot desynchronise
+        # the bundle from the code
+        with open(os.path.join(ROOT, "aquasnowllm.py"), "r") as handle:
+            app_version = ""
+            for line in handle:
+                if line.startswith("APP_VERSION"):
+                    app_version = line.split("=", 1)[1].strip().strip("\"'")
+                    break
         check("version matches the app",
-              plist.get("CFBundleShortVersionString") == "1.0.0",
-              plist.get("CFBundleShortVersionString"))
+              plist.get("CFBundleShortVersionString") == app_version,
+              "%s vs %s" % (plist.get("CFBundleShortVersionString"),
+                            app_version))
 
         # --- the launcher must be executable and be a shell script ---
         launcher = os.path.join(contents, "MacOS",
@@ -83,9 +92,11 @@ def main():
             head = handle.read(2)
         check("launcher is a script", head == b"#!", repr(head))
 
-        # --- payload ---
+        # --- payload: the tkinter edition plus the shared core ---
         resources = os.path.join(contents, "Resources")
-        check("aquasnowllm.py is inside the bundle",
+        check("aquasnow.py is inside the bundle",
+              os.path.isfile(os.path.join(resources, "aquasnow.py")))
+        check("the shared core is inside the bundle",
               os.path.isfile(os.path.join(resources, "aquasnowllm.py")))
 
         # --- no absolute build paths leak into the bundle ---
@@ -130,13 +141,30 @@ def main():
                 shutil.rmtree(fresh, ignore_errors=True)
 
         # --- the packaged app still self-tests ---
-        bundled = os.path.join(resources, "aquasnowllm.py")
+        bundled = os.path.join(resources, "aquasnow.py")
         run = subprocess.Popen([sys.executable, bundled, "--self-test"],
                                stdout=subprocess.PIPE,
                                stderr=subprocess.STDOUT)
         out3, _ = run.communicate()
         check("packaged copy passes --self-test", run.returncode == 0,
               out3.decode("utf-8", "replace")[-400:])
+
+        # --- a packaged app must not be able to break its own launcher ---
+        with open(launcher, "rb") as handle:
+            script = handle.read().decode("utf-8", "replace")
+        check("the launcher keeps the bundle self-contained",
+              "/home/" not in script and "/tmp/" not in script,
+              "absolute build path in the launcher")
+        check("the launcher refuses to start without a usable Python",
+              "missing_title" not in script and "needs Python" in script,
+              script[-300:])
+        # the launcher embeds AppleScript inside single quotes: a stray
+        # apostrophe there produced invalid shell once already
+        for line in script.splitlines():
+            if "osascript" in line:
+                check("the embedded AppleScript has no stray apostrophe",
+                      line.count("'") == 2 or line.count("'") % 2 == 0,
+                      line[:120])
     finally:
         shutil.rmtree(output, ignore_errors=True)
 
