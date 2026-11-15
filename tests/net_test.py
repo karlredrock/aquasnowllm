@@ -270,9 +270,11 @@ def main():
             # a broken TLS path must be a named failure, not a traceback:
             # earlier this crashed with a bare "Could not reach <url>" and
             # told us nothing about *why*
+            detail = getattr(exc, "detail", "") or "(no detail)"
             check("direct TLS GET /models", False,
-                  "%s: %s (transport=%s)"
-                  % (type(exc).__name__, exc, getattr(client, "transport", "?")))
+                  "%s: %s | %s (transport=%s)"
+                  % (type(exc).__name__, exc, detail,
+                     getattr(client, "transport", "?")))
             return 1
         check("direct TLS GET /models", len(models) == 3,
               "got %r" % (models,))
