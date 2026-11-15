@@ -112,10 +112,34 @@ def main():
         root.update()
         check("New Chat adds a row", window.session_list.size() == 2,
               window.session_list.size())
-        window._delete_chat()       # auto-confirm is not available; the
-        root.update()               # messagebox would block, so only assert
-        check("deleting leaves a row behind",
-              window.session_list.size() >= 1, window.session_list.size())
+
+        # _delete_chat() asks for confirmation with a *modal* dialog, which
+        # would block forever with nobody to click it.  Swap in a stub that
+        # answers yes; that exercises the delete path without the modal.
+        real_messagebox = window.messagebox
+
+        class AlwaysYes(object):
+            def askyesno(self, title, message):
+                return True
+
+            def showinfo(self, *args):
+                pass
+
+            def showerror(self, *args):
+                pass
+
+        window.messagebox = AlwaysYes()
+        try:
+            before = window.session_list.size()
+            window._delete_chat()
+            root.update()
+            check("Delete removes one row",
+                  window.session_list.size() == before - 1,
+                  window.session_list.size())
+            check("a session is always selected after a delete",
+                  window.session is not None)
+        finally:
+            window.messagebox = real_messagebox
 
         # -- the settings dialog builds and closes ----------------------
         dialog = app_module.SettingsDialog(window)
