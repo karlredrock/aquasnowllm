@@ -272,41 +272,43 @@ python3 tools/build_app.py --zip      # or: make dmg
 
 That writes `dist/AquaSnowLLM.app` and `dist/AquaSnowLLM.app.zip`. The
 bundle is a normal Mac application — `Contents/Info.plist`, a launcher in
-`Contents/MacOS/`, the Python source in `Contents/Resources/` — so you can
-copy the zip to a Mac, double-click it, and the app runs. It is **not**
-frozen: it uses a Python 2.7 and PyQt4 (or PySide) already on the Mac.
-On 10.6 both have to be installed -- the system Python there is 2.6.1:
+`Contents/MacOS/`, the Python sources in `Contents/Resources/` — so you can
+copy the zip to a Mac, double-click it, and the app runs.
 
-```sh
-sudo port install python27 py27-pyqt4
-```
+It bundles the **tkinter** edition, which is why it needs almost nothing:
+Tk ships with Python, so there is no Qt to install. The launcher looks for
+a Python that can import it (MacPorts first, then `/usr/bin/python2.7`,
+then `python`) and raises a native alert naming the fix if none works.
 
-The launcher looks for an interpreter that can `import PyQt4.QtGui`
-(MacPorts first, then `/usr/bin/python2.7`) and shows a native alert
-pointing at the README if it finds none.
+| Mac | What is needed |
+| --- | --- |
+| 10.7 Lion and newer | nothing — double-click it |
+| 10.6 Snow Leopard | `sudo port install python27` (system Python is 2.6.1) |
 
-This route exists because freezing is the part that truly requires macOS:
-py2app copies the local Python framework and Qt dylibs, so it cannot run
-from Linux or Windows. `tools/app_test.py` checks the bundle structure,
-the plist keys LaunchServices needs, the launcher's exec bit, that no
-absolute build paths leak in, and that the zip round-trips — `make
-apptest` runs it.
+It is **not** frozen: it runs the machine's own Python. That is what makes
+the zip 36 KB. Freezing needs macOS and is route B below.
+
+Want the PyQt4 front end instead? `python3 tools/build_app.py --edition qt
+--zip` — but then the Mac also needs `sudo port install py27-pyqt4`.
+
+`tools/app_test.py` checks the bundle structure, the plist keys
+LaunchServices needs, the launcher's exec bit and embedded AppleScript,
+that no absolute build paths leak in, and that the zip round-trips —
+`make apptest` runs it.
 
 ### B. Build a frozen, self-contained bundle on the Mac (py2app)
 
-**Two packages are required, not one.** py2app is only the packager; Qt 4
-has to be installed separately or the frozen app will build "successfully"
-and then fail to start with a Qt import error:
+This freezes the tkinter edition. Because Tk is part of Python, there is
+**no Qt to install** — py2app is the only packaging dependency:
 
 ```sh
-sudo port install py27-pyqt4     # Qt itself  <- forget this and it breaks
 sudo port install py27-py2app    # the packager
 ```
 
-Verify both before building — this is the step that catches a missing Qt:
+Verify both before building:
 
 ```sh
-/opt/local/bin/python2.7 -c "import PyQt4.QtGui; print('Qt4 OK')"
+/opt/local/bin/python2.7 -c "import Tkinter; print('Tk OK')"
 /opt/local/bin/python2.7 -c "import py2app; print('py2app OK')"
 ```
 

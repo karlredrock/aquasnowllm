@@ -58,7 +58,7 @@ except ImportError:  # Python 3 development path
     from urllib.error import HTTPError, URLError
 
 APP_NAME = "AquaSnowLLM"
-APP_VERSION = "1.0.0"
+APP_VERSION = "1.1.0"
 APP_URL = "https://github.com/aquasnowllm"
 
 OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"

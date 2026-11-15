@@ -2,23 +2,26 @@
 # -*- coding: utf-8 -*-
 """py2app packaging for AquaSnowLLM (Python 2.7, Mac OS X 10.6+).
 
-Building an ``.app``
---------------------
-Two packages are needed.  py2app is only the packager -- it does NOT
-install Qt, and a bundle built without PyQt4 starts and immediately dies
-with a Qt import error.
+Building a frozen ``.app``
+--------------------------
+This freezes **aquasnow.py**, the tkinter edition.  Tk is part of Python
+itself, so unlike the PyQt4 front end there is no Qt to install: py2app
+is the only packaging dependency.
 
     # one time, on the Snow Leopard machine that will build the bundle
     sudo port install python27
-    sudo port install py27-pyqt4       # REQUIRED: this is Qt itself
     sudo port install py27-py2app      # the packager
     sudo port select --set python python27
 
-    # confirm the binding is visible to the interpreter that will build
-    python2.7 -c "import PyQt4.QtGui; print('Qt4 OK')"
+    # confirm Tk is importable by the interpreter that will build
+    python2.7 -c "import Tkinter; print('Tk OK')"
 
     # from this directory
     python2.7 setup.py py2app
+
+For the PyQt4 front end, see ``tools/build_app.py --edition qt``, or
+change ``APP`` below to ``aquasnowllm.py`` and install ``py27-pyqt4``
+first -- a bundle built without it starts and dies on the Qt import.
 
 If py2app comes from pip rather than MacPorts, pin it: 0.28.9.  Version
 0.28.10 declares requires_python >= 3.10 and will not install on 2.7.
@@ -49,9 +52,9 @@ import sys
 
 from setuptools import setup
 
-APP = ["aquasnowllm.py"]
+APP = ["aquasnow.py"]   # the tkinter edition: no Qt needed
 APP_NAME = "AquaSnowLLM"
-VERSION = "1.0.0"
+VERSION = "1.1.0"
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 
@@ -98,7 +101,7 @@ options = {
     "plist": plist,
     "packages": packages,
     "includes": includes,
-    "excludes": ["tkinter", "PyQt5", "PySide2", "PyQt6"],
+    "excludes": ["PyQt4", "PyQt5", "PySide", "PySide2", "PyQt6"],
     "resources": resources,
     "arch": ["x86_64"],
     "semi_standalone": False,
@@ -113,7 +116,7 @@ setup(
     version=VERSION,
     description="Aqua chat client for OpenRouter, for Mac OS X 10.6+",
     long_description=(
-        "A lightweight PyQt4 chat client for the OpenRouter API that runs on "
+        "A lightweight chat client for the OpenRouter API that runs on "
         "Mac OS X 10.6 Snow Leopard and newer. Supports free API keys and "
         ":free models, and ships an HTTP-to-HTTPS bridge for machines whose "
         "OpenSSL is too old to complete a modern TLS handshake."),
